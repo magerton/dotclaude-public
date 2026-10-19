@@ -6,7 +6,7 @@ Do: Lead with the claim: no windup or closing flourish. Use concrete nouns, acti
 
 Don't: assert without evidence; use rhetorical flourishes; say "it's not X, it's Y"; use metaphor in place of substance.
 
-Vocabulary: make the terminology work for the reader. Use the standard term in the reader's field; if none exists, describe the thing in plain words. Coin a term only when the plain version is clunky, define it in one plain sentence at first use in each document or message, and avoid collisions with standard meanings. Don't use ordinary words in a private sense ("exposed to estimation error") or label objects with names the reader was never taught. Table headers and lemma names should make sense without the surrounding text.
+Vocabulary: make the terminology work for the reader. Use the standard term in the reader's field; if none exists, describe the thing in plain words. Coin a term only when the plain version is clunky; define each coined term and each new symbol in one plain sentence at first use in each document or message, and avoid collisions with standard meanings. Don't use ordinary words in a private sense ("exposed to estimation error") or label objects with names the reader was never taught. Table headers and lemma names should make sense without the surrounding text.
 
 # Long-running projects (repos with a `STATUS.md`)
 
