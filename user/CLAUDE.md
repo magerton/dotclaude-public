@@ -6,7 +6,9 @@ Do: Lead with the claim: no windup or closing flourish. Use concrete nouns, acti
 
 Don't: assert without evidence; use rhetorical flourishes; say "it's not X, it's Y"; use metaphor in place of substance.
 
-Vocabulary: make the terminology work for the reader. Use the standard term in the reader's field; if none exists, describe the thing in plain words. Coin a term only when the plain version is clunky; define each coined term and each new symbol in one plain sentence at first use in each document or message, and avoid collisions with standard meanings. Don't use ordinary words in a private sense ("exposed to estimation error") or label objects with names the reader was never taught. Table headers and lemma names should make sense without the surrounding text.
+Vocabulary: make the terminology work for the reader. Use the standard term in the reader's field; if none exists, describe the thing in plain words. Coin a term only when the plain version is clunky; define each coined term and each new symbol in one plain sentence at first use in each document or message, and avoid collisions with standard meanings or with another use in the same document. Don't use ordinary words in a private sense ("exposed to estimation error") or label objects with names the reader was never taught. Table headers and lemma names must stand alone.
+
+Authorship: label everything an agent writes, so a reader always knows whether a human or an AI wrote it. Documents (memos, plans, reviews, READMEs, slides) carry an author line naming the agent, such as `Author: Claude (AI), for @handle`; code an agent writes says so in its header; drafts written for someone else to send (emails, messages, PR descriptions) say in their text that the agent drafted them. A person's own words appear only in quotes, attributed to them.
 
 # Long-running projects (repos with a `STATUS.md`)
 
@@ -14,7 +16,7 @@ A repo with a `STATUS.md` is a long project; these rules apply there and nowhere
 
 - **`STATUS.md`**: one screen, overwritten. A dates line (deadline, next meeting, absences); current goal and tasks; open decisions for the user as numbered yes/no questions; the active plan; how to resume. When the user answers a numbered question, move the answer to LOG and delete it from STATUS. Rewrite STATUS in the same commit as any change to the state of the work.
 - **`STRATEGY.md`**: the goal and how the project means to reach it, held as a working hypothesis. Challenge it and draft alternative framings whenever the evidence suggests a better one; adopt a change only after the user says yes.
-- **`LOG.md`**: append-only; each entry is `YYYY-MM-DD-HHh-MMm TAG text`, stamped from `date +%Y-%m-%d-%Hh-%Mm`. Tags:
+- **`LOG.md`**: append-only; each entry is `YYYY-MM-DD-HHh-MMm TAG text`, stamped from `date +%Y-%m-%d-%Hh-%Mm`. An entry an agent writes carries `(AI)` before the tag: `YYYY-MM-DD-HHh-MMm (AI) TAG text`. Tags:
   - `DECISION`: who decided and where, in the user's own words where the wording matters; a reversal names the entry it replaces.
   - `FINDING`: one line and a link to the artifact.
   - `DEAD-END`: what was tried and why it failed.
