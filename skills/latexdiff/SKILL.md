@@ -45,15 +45,14 @@ $SKILLDIR/scripts/make-latexdiff-full.sh [-f FILE] [-m auto|marked|opaque] [-o O
   `<name>.pdf`, `<name>.tex`, and `<name>-table-values.txt`.
 - Cost: the old commit's text files only (`.tex`, `.sty`, `.cls`, `.bst`, `.bib`, ...), read from
   git with `git archive` into a temporary folder under `$SCRATCH_DIR` (default
-  `${TMPDIR:-/tmp}/latexdiff`); under 3 MB in the repos tested, including one of 32 GB. No
+  `${TMPDIR:-/tmp}/latexdiff`); under 3 MB in the repos tested. No
   worktree, no copy of the working tree. The diff compiles from the target's folder with
   `latexmk -outdir`, so figures and `../` paths resolve as in a normal build and no build files
   land in the repo. Figures that exist only at the old commit are fetched one by one with
-  `git show`; the delivered `.tex` points to them in the temporary folder, which is deleted
-  after a successful run (kept after a failure, for debugging). In a sandboxed session, set
-  `SCRATCH_DIR` to the session scratchpad.
-- If this version fails on a document, `/latexdiff-old` is the previous version (copies the
-  whole working tree; avoid in large repos).
+  `git show` and delivered in `<output>-figs/` beside the output; old parameter macros are inlined,
+  so the delivered `.tex` recompiles from the target's folder. The temporary folder is deleted
+  after a successful run and kept after a failure, for debugging. In a sandboxed session, set
+  `SCRATCH_DIR` to the session scratchpad. `-m` accepts `auto`, `marked` or `opaque`.
 - `auto` (default) tries marked tables and falls back to opaque tables if LaTeX errors remain.
 - Report to the user: the table mode used, the error count, page count, and the SUMMARY
   line of the table report (tables identical / changed / added / dropped). Read the CHANGED
@@ -167,7 +166,7 @@ The `--append-mboxsafecmd` flag should prevent this. If it still occurs, pull th
 #### Fix 5: float errors ("Not in outer par mode" / "Float lost")
 Diff markup around `\begin{figure}` or `\begin{table}` breaks float placement. Remove the `\DIFaddbegin`/`\DIFaddend` markers surrounding the float.
 
-### 6. Report Results
+## Report results
 
 ```
 ## Latexdiff Result: SUCCESS/FAILED
@@ -200,12 +199,12 @@ Get page count with: `grep -c 'Output written' <output>.log` or `pdfinfo <output
   Extract only the old text files, not a worktree:
 
   ```bash
-  mkdir -p /tmp/old-<ref> && git archive <ref> -- '*.tex' | tar -x -C /tmp/old-<ref>
-  python3 $SKILLDIR/../flatten/flatten_inputs.py /tmp/old-<ref>/<dir>/<file>.tex > <dir>/old-flat.tex
+  OLDT="${TMPDIR:-/tmp}/old-<ref>"; mkdir -p "$OLDT" && git archive <ref> -- '*.tex' | tar -x -C "$OLDT"
+  python3 $SKILLDIR/../flatten/flatten_inputs.py "$OLDT"/<dir>/<file>.tex > <dir>/old-flat.tex
   python3 $SKILLDIR/../flatten/flatten_inputs.py <dir>/<file>.tex > <dir>/new-flat.tex
   cd <dir> && latexdiff --graphics-markup=both --encoding=utf8 \
     --add-to-config="PICTUREENV=(?:tabular|longtable|supertabular|threeparttable)[\w\d*@]*" \
     --append-mboxsafecmd="num,qty,numrange,qtyrange,SI,fpeval" \
     old-flat.tex new-flat.tex > <output>.tex
-  latexmk -pdf -outdir="${TMPDIR:-/tmp}/ld-fix" <output>.tex   # then: rm -rf /tmp/old-<ref>
+  latexmk -pdf -outdir="${TMPDIR:-/tmp}/ld-fix" <output>.tex   # then: rm -rf "$OLDT"
   ```

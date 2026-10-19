@@ -35,17 +35,13 @@ Read `~/.claude/skills/build-makefile/SKILL.md`, and `.claude/skills/build-makef
 ### Single Subagent for Full Loop
 For maximum context efficiency, spawn ONE subagent to handle the entire iteration loop:
 - Run `gmake -n all` → find blocker → resolve → commit → repeat
-- Subagent continues until Stage 1 complete or hits major blocker
+- Subagent continues until the current stage is complete or it hits a major blocker
 - Report back only final status
 
 ### Pre-Approved Commands (Run Separately!)
-See CLAUDE.md "Replication Script Guidelines" for the copy pattern. Pre-approved in `.claude/settings.json`:
-- `cp`, `sed -i`, `git add/commit/status/log/diff/-C`, `gmake`
+If the project pre-approves commands in `.claude/settings.json` (for example `cp`, `sed -i`, `git add`, `git commit`, `gmake`), run each as a **separate Bash call**: permission rules match the start of the command text (`Bash(cp:*)`, `Bash(sed -i:*)`, `Bash(git add:*)`), so a chained command may not match. The project's `CLAUDE.md` may give the copy pattern for bringing a script into the packet.
 
-**CRITICAL**:
-1. Each command must be a **separate Bash call**: permission rules match the start of the command text (`Bash(cp:*)`, `Bash(sed -i:*)`, `Bash(git add:*)`), so a chained command may not match.
-
-Execute CLAUDE.md pattern as separate calls:
+For example, as separate calls:
 1. `git -C ~/projects/repo log -1 ...` (description: "git -C get commit hash")
 2. `cp ~/projects/repo/path/to/script.R R/` (description: "cp script to R/")
 3. `sed -i '' "1i\\..." R/script.R` (description: "sed -i add header")
@@ -166,7 +162,7 @@ Use the project's mapping, recorded in the project's `CLAUDE.md` or project skil
 
 - **Spaces in filenames**: Escape with backslash in prerequisites
   ```makefile
-  $(DATA_INTER)/output.RData: $(SCRIPTS_R)/01d\ -\ process\ data.R
+  $(DATA_INTER)/output.RData: $(SCRIPTS_R)/02\ -\ clean\ data.R
   	$(RSCRIPT) "$<"
   ```
 - **Grouped targets** (one script, multiple outputs): Use `&:`
@@ -205,7 +201,7 @@ Use the project's mapping, recorded in the project's `CLAUDE.md` or project skil
    grep "script_name" Makefile
    ```
 
-**Note**: Requires GNU Make 4.3+ for grouped targets. The Makefile includes a version check.
+**Note**: Grouped targets need GNU Make 4.3+; consider a version check at the top of the Makefile.
 
 ## Source Repos Reference
 
@@ -221,10 +217,6 @@ When receiving updated Stata scripts:
 5. **Update inventories** if outputs change
 
 
-## Open Questions
-
-- How to handle date-stamped filenames (e.g., `*-2023-10-31.RData`) in Makefile?
-- Best approach for CONSTANTS.R dependencies that use variables?
 
 ## Portability
 

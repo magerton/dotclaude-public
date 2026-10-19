@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # make-latexdiff-full.sh  (light: no checkout of the old commit, no copy of the repo)
+# Light version written by Claude (AI) for Mark Agerton, 2026-10-19, from an earlier driver.
 #
 # latexdiff PDF of a .tex file (current working tree) vs a past git commit,
 # WITH cell-level table markup, same-name macro value changes, and a table
@@ -27,9 +28,10 @@
 #   5. unwrap \adjustbox{opts}{...} commands (latexdiff won't mark inside command
 #      arguments) and STRIP rule commands (formatting only; diff PDF has no rules);
 #   6. latexdiff with tabular NOT in PICTUREENV;
-#   7. inject OLD parameter macros as \providecommand (struck-out macros compile);
+#   7. inline OLD parameter macros as \providecommand (struck-out macros compile);
 #   8. move \DIF...FL markers that precede \multicolumn out of the cell;
-#   9. point \includegraphics at old-only figures fetched from git;
+#   9. point \includegraphics at old-only figures fetched from git (delivered in
+#      OUTNAME-figs/ next to the output, so the delivered .tex recompiles);
 #  10. latexmk from FILE's folder with -outdir; if errors remain, fall back to opaque
 #      tables (always compiles, shows only the NEW table).
 #
@@ -60,6 +62,7 @@ while getopts "f:m:o:p:x:" opt; do
   esac
 done
 shift $((OPTIND - 1))
+case "$MODE" in auto|marked|opaque) ;; *) echo "!! -m must be auto, marked or opaque (quick mode is -m opaque)" >&2; exit 2 ;; esac
 OLD_REF="${1:?usage: make-latexdiff-full.sh [-f FILE] [-m MODE] [-o OUTNAME] [-p MACROFILE]... OLD_REF}"
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(git rev-parse --show-toplevel)"
@@ -74,7 +77,7 @@ UNWRAP="$SCRIPTDIR/latexdiff-unwrap-adjustbox.py"
 OLDFIGS="$SCRIPTDIR/latexdiff-old-figures.py"
 LDCOMMON=( --graphics-markup=both --encoding=utf8 --append-mboxsafecmd="num,qty,numrange,qtyrange,SI,fpeval,unit" )
 
-mkdir -p "$SCRATCH"
+mkdir -p "$SCRATCH"; SCRATCH="$(cd "$SCRATCH" && pwd)"   # absolute, so later cd calls keep it
 T="$(mktemp -d "$SCRATCH/$(basename "$REPO")-XXXXXX")"
 OLD="$T/old"; B="$T/build"; mkdir -p "$OLD" "$B"
 ok=0
@@ -89,7 +92,8 @@ for p in ${PARAMS[@]+"${PARAMS[@]}"}; do
   ( cd "$REPO" && git cat-file -e "$OLD_REF:$p" 2>/dev/null ) && printf '%s\0' "$p" >> "$T/old-files"
 done
 [ -s "$T/old-files" ] || { echo "!! no text files at $OLD_REF" >&2; exit 1; }
-( cd "$REPO" && OLDDIR="$OLD" xargs -0 sh -c 'git archive "$0" -- "$@" | tar -x -C "$OLDDIR"' "$OLD_REF" < "$T/old-files" )
+# Literal pathspecs: file names are paths, not patterns. pipefail: a git archive error stops the run.
+( cd "$REPO" && GIT_LITERAL_PATHSPECS=1 OLDDIR="$OLD" xargs -0 bash -c 'set -o pipefail; git archive "$0" -- "$@" | tar -x -C "$OLDDIR"' "$OLD_REF" < "$T/old-files" )
 [ -f "$OLD/$MAIN" ] || { echo "!! $MAIN not found at $OLD_REF" >&2; exit 1; }
 echo "   old text files: $(tr -cd '\0' < "$T/old-files" | wc -c | tr -d ' '), $(du -sh "$OLD" | cut -f1)"
 # --- 3. OLD-parameter shim ----------------------------------------------------
@@ -125,9 +129,11 @@ strip_rules () {
     s/\\specialrule\s*\{[^}]*\}\s*\{[^}]*\}\s*\{[^}]*\}//g;
   ' "$1" > "$2"
 }
-inject_shim () { SHIM="$B/old-params-shim" perl -0777 -i -pe 's/(\\begin\{document\})/\\input{$ENV{SHIM}}\n$1/ unless /old-params-shim/' "$1"; }
+inject_shim () {  # inline the OLD macros before \begin{document}, so the delivered .tex needs no extra file
+  SHIM="$B/old-params-shim.tex" perl -0777 -i -pe 'BEGIN { local $/; open my $f, "<", $ENV{SHIM} or die; $shim = <$f> } s/(\\begin\{document\})/$shim$1/ unless /AUTO-GENERATED: OLD parameter macros/' "$1"
+}
 compile () {
-  python3 "$OLDFIGS" "$B/main-diff.tex" "$REPO" "$MAINDIR" "$OLD_REF" "$T/figs" >&2
+  python3 "$OLDFIGS" "$B/main-diff.tex" "$REPO" "$MAINDIR" "$OLD_REF" "$T/figs" >&2 || echo "!! old-figure step failed; deleted figures may be missing" >&2
   ( cd "$REPO/$MAINDIR" && TEXMFOUTPUT="$B" latexmk -pdf -interaction=nonstopmode -outdir="$B" "$B/main-diff.tex" > "$B/compile.log" 2>&1 || true )
 }
 fix_multicolumn () {
@@ -144,15 +150,16 @@ errcount () { [ -f "$1" ] || { echo 999; return; }; grep -cE '^!' "$1" 2>/dev/nu
 build_marked () {
   OLDP=(); NEWP=()
   for p in ${PARAMS[@]+"${PARAMS[@]}"}; do OLDP+=("$OLD/$p"); NEWP+=("$REPO/$p"); done
-  python3 "$EXPANDER" "$B/old-flat.tex" ${OLDP[@]+"${OLDP[@]}"} "$B/old-flat-exp.tex" >&2
-  python3 "$EXPANDER" "$B/new-flat.tex" ${NEWP[@]+"${NEWP[@]}"} "$B/new-flat-exp.tex" >&2
-  python3 "$UNWRAP" "$B/old-flat-exp.tex" "$B/old-flat-unwrap.tex" >&2
-  python3 "$UNWRAP" "$B/new-flat-exp.tex" "$B/new-flat-unwrap.tex" >&2
+  # set -e does not apply inside $(...), so each step reports failure as 999 errors.
+  python3 "$EXPANDER" "$B/old-flat.tex" ${OLDP[@]+"${OLDP[@]}"} "$B/old-flat-exp.tex" >&2 || { echo 999; return; }
+  python3 "$EXPANDER" "$B/new-flat.tex" ${NEWP[@]+"${NEWP[@]}"} "$B/new-flat-exp.tex" >&2 || { echo 999; return; }
+  python3 "$UNWRAP" "$B/old-flat-exp.tex" "$B/old-flat-unwrap.tex" >&2 || { echo 999; return; }
+  python3 "$UNWRAP" "$B/new-flat-exp.tex" "$B/new-flat-unwrap.tex" >&2 || { echo 999; return; }
   strip_rules "$B/old-flat-unwrap.tex" "$B/old-flat-norule.tex"
   strip_rules "$B/new-flat-unwrap.tex" "$B/new-flat-norule.tex"
   ( cd "$B" && latexdiff "${LDCOMMON[@]}" \
         --config="PICTUREENV=(?:picture|DIFnomarkup)[\w\d*@]*" \
-        old-flat-norule.tex new-flat-norule.tex > main-diff.tex 2> latexdiff.stderr )
+        old-flat-norule.tex new-flat-norule.tex > main-diff.tex 2> latexdiff.stderr ) || { echo "!! latexdiff failed; see $B/latexdiff.stderr" >&2; echo 999; return; }
   inject_shim "$B/main-diff.tex"
   fix_multicolumn "$B/main-diff.tex"
   compile
@@ -161,7 +168,7 @@ build_marked () {
 build_opaque () {
   ( cd "$B" && latexdiff "${LDCOMMON[@]}" \
         --config="PICTUREENV=(?:picture|DIFnomarkup|tabular|longtable|threeparttable)[\w\d*@]*" \
-        old-flat.tex new-flat.tex > main-diff.tex 2> latexdiff.stderr )
+        old-flat.tex new-flat.tex > main-diff.tex 2> latexdiff.stderr ) || { echo "!! latexdiff failed; see $B/latexdiff.stderr" >&2; echo 999; return; }
   inject_shim "$B/main-diff.tex"
   compile
   errcount "$B/main-diff.log"
@@ -184,6 +191,11 @@ fi
 # --- 7. deliverables ------------------------------------------------------------
 cp "$B/main-diff.pdf"        "$REPO/$MAINDIR/$OUTNAME.pdf"
 cp "$B/main-diff.tex"        "$REPO/$MAINDIR/$OUTNAME.tex"
+if [ -d "$T/figs" ]; then   # old-only figures: deliver beside the output; point the .tex at them
+  rm -rf "$REPO/$MAINDIR/$OUTNAME-figs"; cp -R "$T/figs" "$REPO/$MAINDIR/$OUTNAME-figs"
+  FROM="$T/figs/" TO="$OUTNAME-figs/" perl -pi -e 's/\Q$ENV{FROM}\E/$ENV{TO}/g' "$REPO/$MAINDIR/$OUTNAME.tex"
+  echo "   $REPO/$MAINDIR/$OUTNAME-figs/ (figures deleted since $SHORT)"
+fi
 cp "$B/table-value-diff.txt" "$REPO/$MAINDIR/$OUTNAME-table-values.txt"
 ok=1
 echo ">> DONE (table mode: $chosen)"

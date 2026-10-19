@@ -21,7 +21,7 @@ Makefile:611: update target 'foo.RData' due to: bar.RData
 
 The `-n` flag is critical -- it does a dry run so nothing actually executes.
 
-**NEVER touch files, create stamp files, or edit Makefile rules until you understand the root cause.** In our case, touching files without understanding the dependency graph created a cascading mess that took an hour to fix. The dependency graph can be deep, and blindly touching one file to fix a timestamp will trigger rebuilds of everything downstream, which then triggers further rebuilds, and so on.
+**NEVER touch files, create stamp files, or edit Makefile rules until you understand the root cause.** Touching files without understanding the dependency graph can start a cascade of rebuilds that takes hours to undo. The dependency graph can be deep, and blindly touching one file to fix a timestamp will trigger rebuilds of everything downstream, which then triggers further rebuilds, and so on.
 
 ### Grouped Targets (`&:`) and Stamp Files
 
@@ -69,7 +69,7 @@ ls -la data/input.csv
 ### Check Dry Run for Specific Target
 ```bash
 gmake -n TARGET 2>&1
-# Example: gmake -n data-intermediate/panel/panel-2023-11-14.RData
+# Example: gmake -n data-intermediate/panel.RData
 ```
 Shows what would run without executing. If dependencies are missing, they won't appear here.
 
@@ -98,7 +98,7 @@ Simple but often forgotten - verify files in dependency chain exist.
 
 ```makefile
 # BAD - LOOKUP_TABLE is empty when rule is parsed
-$(PANEL): $(SCRIPTS_R)/00c.R $(LOOKUP_TABLE)
+$(PANEL): $(SCRIPTS_R)/build-panel.R $(LOOKUP_TABLE)
     $(RSCRIPT) $<
 
 # ... 100 lines later ...
@@ -111,7 +111,7 @@ LOOKUP_TABLE := $(DATA_INTER)/lookup_table.RData  # TOO LATE!
 # GOOD - Forward declare early
 LOOKUP_TABLE := $(DATA_INTER)/lookup_table.RData
 
-$(PANEL): $(SCRIPTS_R)/00c.R $(LOOKUP_TABLE)
+$(PANEL): $(SCRIPTS_R)/build-panel.R $(LOOKUP_TABLE)
     $(RSCRIPT) $<
 ```
 
@@ -200,7 +200,7 @@ See the `build-makefile` skill for the full commit policy. Key point for debuggi
 
 **Common errors in logs**:
 ```
-file ... not found          → Check symlinks, Input_Files/ paths
+file ... not found          → Check symlinks and input folder paths
 variable ... not found      → Missing prerequisite .dta file
 r(601) invalid file spec    → Path has special characters
 ```
@@ -242,9 +242,9 @@ Rscript -e '
 
 3. **Missing sourced files** - Check with Grep: `source\(` in the script, then verify files exist
 
-4. **Presentation ggsave paths** - Comment out presentation figures, keep paper figures
+4. **Figures for other outputs** - Comment out `ggsave` calls for slides or other outputs the packet does not ship; keep the paper's figures
 
-5. **`Sys.Date()` in output filenames** - Breaks Makefile deps when run on different days. Hardcode: `DATE <- "2022-03-16"`
+5. **`Sys.Date()` in output filenames** - Breaks Makefile deps when run on different days. Hardcode a fixed date: `DATE <- "YYYY-MM-DD"`
 
 6. **Package masking: `year()` and `yearmon`** - `data.table::year()` masks `lubridate::year()` but fails on `zoo::yearmon`. Fix: load `lubridate` after `data.table`, or use `lubridate::year()` explicitly.
 

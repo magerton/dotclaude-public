@@ -9,6 +9,7 @@ it with `git show` under OUTDIR and replace the name with that absolute path.
 
 Usage: latexdiff-old-figures.py DIFF_TEX REPO MAINDIR OLD_REF OUTDIR
 Prints one line per fetched figure.
+Written by Claude (AI) for Mark Agerton, 2026-10-19.
 """
 import os, re, subprocess, sys
 
