@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Written by Claude (AI), for @magerton.
+# Append one entry to a long project's LOG.md, stamped from `date` (rules: user/CLAUDE.md,
+# "Long-running projects" and "Shared repos").
+#   log-entry [--human] [--handle @x] [--file PATH] TAG text...
+# TAG is DECISION, FINDING, DEAD-END, IDEA or LESSON. Entries are marked (AI) unless --human.
+# Without --file, uses LOG.md at the project root, else a single LOG.md within depth 3
+# (as hooks/session-status.sh finds STATUS.md). Prints the line it wrote.
+set -euo pipefail
+ai="(AI) " handle="" file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --human) ai=""; shift ;;
+    --handle) handle="${2:?--handle needs a value}"; shift 2 ;;
+    --file) file="${2:?--file needs a path}"; shift 2 ;;
+    *) break ;;
+  esac
+done
+[ $# -ge 2 ] || { echo "usage: log-entry [--human] [--handle @x] [--file PATH] TAG text..." >&2; exit 1; }
+tag="$1"; shift
+case "$*" in *$'\n'*) echo "log-entry: text must be one line" >&2; exit 1 ;; esac
+case "$tag" in DECISION|FINDING|DEAD-END|IDEA|LESSON) ;; *) echo "log-entry: unknown tag '$tag'" >&2; exit 1 ;; esac
+case "$handle" in ""|@*) ;; *) handle="@$handle" ;; esac
+if [ -z "$file" ]; then
+  dir="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  file="$dir/LOG.md"
+  if [ ! -f "$file" ]; then
+    hits="$(find "$dir/" -maxdepth 3 -name LOG.md -not -path '*/archive/*' -not -path '*/.git/*' -not -path '*/templates/*' 2>/dev/null)"
+    n="$(printf '%s' "$hits" | grep -c . || true)"
+    [ "$n" -eq 1 ] || { echo "log-entry: found $n LOG.md files under $dir; pass --file" >&2; exit 1; }
+    file="$hits"
+  fi
+fi
+[ -f "$file" ] || { echo "log-entry: no file $file" >&2; exit 1; }
+line="$(date +%Y-%m-%d-%Hh-%Mm) ${handle:+$handle }${ai}$tag $*"
+# Start on a new line if the file does not end with one.
+[ -s "$file" ] && [ "$(tail -c1 "$file")" != "" ] && echo >> "$file"
+printf '%s\n' "$line" >> "$file"
+echo "$line"
