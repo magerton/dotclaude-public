@@ -12,7 +12,7 @@ Authorship: label everything an agent writes, so a reader always knows whether a
 
 # Long-running projects (repos with a `STATUS.md`)
 
-A repo with a `STATUS.md` is a long project; these rules apply there and nowhere else. The project `CLAUDE.md` names where the record files and the results folder live.
+A repo with a `STATUS.md` is a long project; these rules apply there and nowhere else. The project instructions (`CLAUDE.md`, or the `AGENTS.md` it imports) name where the record files and the results folder live.
 
 - **`STATUS.md`**: one screen, overwritten. A dates line (deadline, next meeting, absences); current goal and tasks; open decisions for the user as numbered yes/no questions; the active plan; how to resume. When the user answers a numbered question, move the answer to LOG and delete it from STATUS. Rewrite STATUS in the same commit as any change to the state of the work.
 - **`STRATEGY.md`**: the goal and how the project means to reach it, held as a working hypothesis. Challenge it and draft alternative framings whenever the evidence suggests a better one; adopt a change only after the user says yes.
