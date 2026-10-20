@@ -10,7 +10,7 @@ This file is the instructions for every coding agent. Codex reads it directly; `
    - `.dotclaude/user/CLAUDE.md`: writing rules, and the rules for `STATUS.md`, `STRATEGY.md` and `LOG.md`.
    - `.dotclaude/research.md`: research working rules (research projects only).
 
-   If `.dotclaude` is missing, help the user set it up before other work.
+   If `.dotclaude` is missing, clone the public rules into it: `git clone --depth 1 https://github.com/magerton/dotclaude-public .dotclaude`. If git has no network access, read the files from `https://raw.githubusercontent.com/magerton/dotclaude-public/main/`. If neither works, tell the user before other work.
 2. `STATUS.md`, then `STRATEGY.md`. Grep `LOG.md` for a topic before starting work on it.
 
 ## Records
@@ -19,7 +19,7 @@ This file is the instructions for every coding agent. Codex reads it directly; `
 - Results folder: `<work/>` (memos and analyses, `YYYY-MM-DD-<topic>.md`, with Date/Status/Summary headers). Plans: `plans/`.
 - `scratch/` (at any level): throwaway output; gitignored.
 
-<For a repo shared by several people: tag each LOG entry with the author's GitHub handle after the stamp (`YYYY-MM-DD-HHh-MMm @handle TAG text`), name the person each STATUS question is for, and say who may approve a change to STRATEGY.>
+<For a repo shared by several people: a "Team" table (name, GitHub handle, role). The rules in `.dotclaude/user/CLAUDE.md`, "Shared repos", then apply.>
 
 ## Repo rules
 

@@ -30,3 +30,16 @@ A repo with a `STATUS.md` is a long project; these rules apply there and nowhere
 - **Headers.** Memos, reviews and plans start with `Date:`, `Status:` and `Summary:` lines.
 - **Cleanup at check-ins.** Completed research artifacts (memos, literature reviews, proofs, analyses) stay. Delete obsolete intermediates: review reports whose findings have been applied, superseded drafts, finished plans. Move any caveat into a living file first, and list the deleted files in the commit message. `git log --diff-filter=D --name-only` lists them later; `git log -S'<text>'` searches their text.
 - **Agent memory** (in Claude Code, auto-memory) holds only facts about the user that apply across projects. Project facts go in the files above.
+
+# Shared repos (several people, possibly several agents)
+
+A long project whose `AGENTS.md` lists a team is shared. There, in addition to the rules above:
+
+- **The user** is the person running the session. Find their GitHub handle with `gh api user --jq .login`; failing that, `git config user.name`; failing that, ask.
+- **LOG** entries carry the handle after the stamp: `YYYY-MM-DD-HHh-MMm @handle TAG text`, or `YYYY-MM-DD-HHh-MMm @handle (AI) TAG text` when an agent writes it. A DECISION names who decided, who may be someone other than the session's user.
+- **STATUS**: the second line is `Updated: YYYY-MM-DD @handle`. Each open question names whom it is for: `1. **(@handle)** ...`. Remove only answered questions; never drop another person's question or task.
+- **STRATEGY** binds no one until a coauthor approves it, in a meeting or in writing; its `Status:` line names who approved the current version and the LOG entry that records it. An agent never adopts a change on its own, and a draft STRATEGY is no reason to interrupt other work.
+- **Author lines**: `Author: @handle` for a person, `Author: <agent> (AI), for @handle` for an agent.
+- **Git.** Never rebase, squash or force-push: LOG entries cite commit hashes. `.gitattributes` has `LOG.md merge=union`, so local merges keep both sides' entries; check the merged LOG is in time order. Resolve STATUS and STRATEGY conflicts by hand, keeping both authors' content.
+- **Agents differ.** Where a step needs a feature the session's agent lacks (Claude Code skills, hooks, subagents), do the nearest equivalent by hand or skip the step and say so. A skill's instructions are in `.dotclaude/skills/<name>/SKILL.md`.
+- **Per-user facts** (operating system, local paths, preferences) go in the gitignored `CLAUDE.local.md`. Claude Code loads it; other agents read it at session start if it exists.
