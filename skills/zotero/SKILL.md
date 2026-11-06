@@ -8,6 +8,14 @@ argument-hint: "<search terms or cite key>"
 
 If the repo has `.claude/skills/zotero/SKILL.md`, read it for project notes (bib file, known duplicates).
 
+**Start Zotero first.** Run this before the first Zotero call. It does nothing if Zotero is running; otherwise it starts Zotero in the background and waits up to 40 seconds for the local API. `open` is macOS; on Linux, start `zotero &` instead.
+
+```bash
+U=http://127.0.0.1:23119/api/; curl -sf -o /dev/null -m 2 $U || { open -g -a Zotero; curl -sf -o /dev/null --retry 40 --retry-delay 1 --retry-connrefused --retry-max-time 40 $U; }
+```
+
+If the command fails, Zotero did not start or its local API is off (Settings > Advanced > "Allow other applications on this computer to communicate with Zotero"). Tell the user and stop.
+
 **Search** (`limit` ≤ 10; each result costs context):
 - Author / title / year: `zotero_search_items(query="kitagawa tetenov", qmode="titleCreatorYear", limit=5)`
 - Cite key: `zotero_search_items(query="kitagawa2018who")`
