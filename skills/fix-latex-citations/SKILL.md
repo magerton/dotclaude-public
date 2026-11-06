@@ -17,13 +17,13 @@ Accepts optional argument:
 
 ## Workflow
 
-Before the first Zotero search, start Zotero. It does nothing if Zotero is running; otherwise it starts Zotero in the background and waits up to 40 seconds for the local API. `open` is macOS; on Linux, start `zotero &` instead.
+Before the first Zotero search, start Zotero. This command starts it in the background if it is not running, waits 2 seconds, then pings the local API for up to 45 seconds. Keep the wait: a ping sent straight after launch may stop the library loading, and the API then hangs. `open` is macOS; on Linux, start `zotero &` instead. Run it exactly as written: permission allow rules match this text.
 
 ```bash
-U=http://127.0.0.1:23119/api/; curl -sf -o /dev/null -m 2 $U || { open -g -a Zotero; curl -sf -o /dev/null --retry 40 --retry-delay 1 --retry-connrefused --retry-max-time 40 $U; }
+pgrep -qx zotero || open -g -a Zotero && sleep 2 && curl -sf -o /dev/null -m 5 --retry 40 --retry-delay 1 --retry-connrefused --retry-max-time 40 http://127.0.0.1:23119/api/
 ```
 
-If the command fails, Zotero did not start or its local API is off (Settings > Advanced > "Allow other applications on this computer to communicate with Zotero"). Tell the user and stop; do not report keys as "Not in Zotero".
+If the command fails, Zotero did not start, is not responding, or its local API is off (Settings > Advanced > "Allow other applications on this computer to communicate with Zotero"). Tell the user and stop; do not report keys as "Not in Zotero".
 
 1. **Parse log file** for undefined citation warnings:
    - Pattern: `LaTeX Warning: Citation .* on page .* undefined`

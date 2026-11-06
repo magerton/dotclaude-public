@@ -11,13 +11,13 @@ You are retrieving one specific piece of content from a paper for an economics r
 
 Request: $ARGUMENTS
 
-First, start Zotero. It does nothing if Zotero is running; otherwise it starts Zotero in the background and waits up to 40 seconds for the local API. `open` is macOS; on Linux, start `zotero &` instead.
+First, start Zotero. This command starts it in the background if it is not running, waits 2 seconds, then pings the local API for up to 45 seconds. Keep the wait: a ping sent straight after launch may stop the library loading, and the API then hangs. `open` is macOS; on Linux, start `zotero &` instead. Run it exactly as written: permission allow rules match this text.
 
 ```bash
-U=http://127.0.0.1:23119/api/; curl -sf -o /dev/null -m 2 $U || { open -g -a Zotero; curl -sf -o /dev/null --retry 40 --retry-delay 1 --retry-connrefused --retry-max-time 40 $U; }
+pgrep -qx zotero || open -g -a Zotero && sleep 2 && curl -sf -o /dev/null -m 5 --retry 40 --retry-delay 1 --retry-connrefused --retry-max-time 40 http://127.0.0.1:23119/api/
 ```
 
-If the command fails, Zotero did not start or its local API is off (Settings > Advanced > "Allow other applications on this computer to communicate with Zotero"). Say so, then go to the `~/Zotero/storage` fallback in step 2 if you can identify the attachment; otherwise stop.
+If the command fails, Zotero did not start, is not responding, or its local API is off (Settings > Advanced > "Allow other applications on this computer to communicate with Zotero"). Say so, then go to the `~/Zotero/storage` fallback in step 2 if you can identify the attachment; otherwise stop.
 
 1. Find the item with `zotero_search_items` (cite keys look like `vaart1998asymptotic`; use `limit` ≤ 5). If several items match and the request does not settle it, pick the closest and say which you picked. Book chapters can be separate Zotero items or child attachments (`zotero_get_item_children`).
 2. Get the text with `zotero_get_item_fulltext`. If that fails, find the PDF under `~/Zotero/storage/<attachment key>/` and read the relevant pages.
